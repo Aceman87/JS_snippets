@@ -1,0 +1,131 @@
+<html>
+    <head>
+        <meta content="text/html; charset=UTF-8" http-equiv="content-type" />
+        <style>
+            body {
+                display: block;
+                margin: 8px;
+            }
+            #myDiv {
+                width: 100%;
+                max-width: 100vw;
+                margin-top: 10px;
+            }
+            .wind {
+                width: 530;
+                height: 656;
+                position: absolute;
+                top: 0;
+                left: 0; 
+            }
+        </style>
+    </head>
+    <body>
+        <div id="myDiv">
+            <div id="windTime" style="position: relative;z-index: 5000;color: black;font-weight: bold;font-size: x-large;font-family: sans-serif;visibility: hidden;"></div>
+            <img src="" id="windlayer" class="wind" style="z-index: 1000; visibility: hidden;" onload="saveItem()">
+            <img src="" id="arrwlayer" class="wind" style="z-index: 3000; display: block; visibility: hidden;">
+            <img src="http://www.foreca.fi/bgmaps/sea/cleanborders/itameri.png?4" id="masklayer" class="wind" style="z-index: 4000;">
+            <img src="http://img-d.foreca.net/lgd/legend_seawinds.png" width="528" height="30" style="position: absolute; top: 656; left: 0; margin: 4px 0 0 2px;">
+        </div>
+        <script type="text/javascript">
+            //adds hours to a date
+            Date.prototype.addHours = function(h) {    
+               this.setTime(this.getTime() + (h*60*60*1000)); 
+               return this;   
+            }
+            var loadLimit = 9;
+            var windItems = new Array(loadLimit-1);
+            var pointer = 0;
+            var timestamp;
+            var timeoffset = -1;
+            var windlayer;
+            var arrwlayer;
+            var timeout = 10;
+            
+            function loadImages() {
+                //In this case, the images are 3 hours appart, so we optimize to try to get only those images
+                if (pointer == 0) {
+                    timeoffset++;
+                } else {
+                    timeoffset = timeoffset + 3;
+                }
+            
+                var parseDate;
+                //check if we have reached load limit
+                if (pointer >= loadLimit) {
+                    pointer = 0;
+                    timeoffset = 0;
+                    //show the images
+                    document.getElementById("windTime").style.visibility = "visible";
+                    document.getElementById("windlayer").style.visibility = "visible";
+                    document.getElementById("arrwlayer").style.visibility = "visible";
+                    //remove the saveItem function from onload, all items are already saved
+                    document.getElementById("windlayer").onload = null;
+                    //extend the timeout to viewing speed
+                    timeout = 3000;
+                }
+                //sanity check
+                if (timeoffset > 100) {
+                    console.log("Spiralling out of control, restarting from beginning");
+                    windItems = new Array(loadLimit-1);
+                    pointer = 0;
+                    timeoffset = 0;
+                }
+                //if we do not have this image, load it
+                if (windItems[pointer] == null) {
+                    console.log("Loading wind images, pointer: " + pointer + ", timeoffset: " + timeoffset);
+                    var today = new Date();
+                    //add offset to the time to get images in chronological order
+                    today.addHours(timeoffset);
+                    var hh = today.getHours();
+                    //make two digit hour
+                    hh = ("0" + hh).slice(-2);
+                    var dd = today.getDate();
+                    //make two digit day
+                    dd = ("0" + dd).slice(-2);
+                    var mm = today.getMonth()+1; //January is 0!
+                    //make two digit month
+                    mm = ("0" + mm).slice(-2);
+                    var yyyy = today.getFullYear();
+                    
+                    parseDate = "" + yyyy + mm + dd + hh;
+                    timestamp = dd + "." + mm + " " + hh + ":00";
+                    windlayer = new Image();
+                    windlayer.src = "http://cache-a.foreca.com/i/veneily_wind/itameri-veneily_wind-" + parseDate + ".png";
+                    arrwlayer = new Image();
+                    arrwlayer.src = "http://cache-a.foreca.com/i/veneily_wind/itameri-veneily_wind_arrow-" + parseDate + ".png";
+                    
+                    console.log("ParseDate: " + parseDate);
+                    console.log(document.getElementById("windlayer").src);
+                    console.log(document.getElementById("arrwlayer").src);
+                //load image from array
+                } else {
+                    parseDate = "cached: " + windItems[pointer][0];
+                    timestamp = windItems[pointer][0];
+                    windlayer = windItems[pointer][1];
+                    arrwlayer = windItems[pointer][2];
+                    pointer++;
+                }
+                document.getElementById("windTime").innerHTML = timestamp;
+                document.getElementById("windlayer").src = windlayer.src;
+                document.getElementById("arrwlayer").src = arrwlayer.src;
+                
+                //set timeout for a recursive call
+                setTimeout(loadImages,timeout);
+            }
+            
+            //if the image managed to load, save it to the array
+            function saveItem() {
+                windItems[pointer] = new Array(3);
+                windItems[pointer][0] = timestamp;
+                windItems[pointer][1] = windlayer;
+                windItems[pointer][2] = arrwlayer;
+                //advance pointer so that a new image can be saved
+                pointer++;
+            }
+            
+            loadImages();
+        </script>
+    </body>
+</html>
